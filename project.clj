@@ -10,6 +10,7 @@
                  [meta-merge "0.1.1"]
                  [ring "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
+                 [ring-middleware-format "0.7.0"]
                  [ring-jetty-component "0.3.0"]]
   :plugins [[lein-environ "1.0.1"]
             [lein-gen "0.2.2"]]

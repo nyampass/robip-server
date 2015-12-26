@@ -6,6 +6,12 @@ API server implementation for Robip
 
 ### Setup
 
+Install PlatformIO using pip
+
+```pip install -U pip setuptools
+pip install -U platformio
+```
+
 When you first clone this repository, run:
 
 ```sh

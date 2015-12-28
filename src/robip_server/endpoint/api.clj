@@ -1,14 +1,40 @@
 (ns robip-server.endpoint.api
   (:require [compojure.core :refer [routes context GET POST]]
             [ring.util.response :as res]
-            [ring.middleware.format :refer [wrap-restful-format]]))
+            [ring.middleware.format :refer [wrap-restful-format]]
+            [robip-server.builder :as builder]
+            [robip-server.component.db :as db]))
 
-(defn handle-build [{{:keys [code]} :params}]
-  (res/response {:status :ok :code (str code)}))
+(defn response [status opts]
+  (res/response (merge {:status status} opts)))
 
-(defn api-endpoint [config]
+(defn ok [& {:as opts}]
+  (response :ok opts))
+
+(defn error [msg & {:as opts}]
+  (response :error (merge {:message msg} opts)))
+
+(defn build [{{:keys [code]} :params} db]
+  (if code
+    (let [{bin-file :bin-file {:keys [out err exit]} :result} (builder/build code)]
+      (if bin-file
+        (let [hash (db/save-file db bin-file)]
+          (ok :url (str "/api/binary/" hash) :out out :err err :exit exit))
+        (error "build failed" :out out :err err :exit exit)))
+    (error "invalid request")))
+
+(defn fetch-file [{{:keys [hash]} :params} db]
+  (if hash
+    (if-let [file (db/fetch-file db hash)]
+      (res/file-response (.getPath file))
+      (res/not-found "not found"))
+    (res/not-found "not found")))
+
+(defn api-endpoint [{db :db}]
   (-> (routes
        (context "/api" []
-                (GET "/build" req
-                     (handle-build req))))
-      (wrap-restful-format :formats [:transit-json])))
+                (POST "/build" req
+                      (build req db))
+                (GET "/binary/:hash" req
+                     (fetch-file req db))))
+      (wrap-restful-format :formats [:json-kw])))

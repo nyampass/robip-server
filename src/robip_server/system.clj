@@ -6,7 +6,8 @@
             [meta-merge.core :refer [meta-merge]]
             [ring.component.jetty :refer [jetty-server]]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
-            [robip-server.endpoint.api :refer [api-endpoint]]))
+            [robip-server.endpoint.api :refer [api-endpoint]]
+            [robip-server.component.db :as db]))
 
 (def base-config
   {:app {:middleware [[wrap-not-found :not-found]
@@ -19,7 +20,9 @@
     (-> (component/system-map
          :app  (handler-component (:app config))
          :http (jetty-server (:http config))
-         :api (endpoint-component api-endpoint))
+         :api (endpoint-component api-endpoint)
+         :db (db/db-component (:db config)))
         (component/system-using
          {:http [:app]
-          :app  [:api]}))))
+          :app  [:api]
+          :api [:db]}))))

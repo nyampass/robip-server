@@ -22,8 +22,8 @@
           result (assoc config
                         :result command-result)]
       (if (= (:exit command-result) 0)
-        (dissoc result :bin-file)
-        result))))
+        result
+        (dissoc result :bin-file)))))
 
 (defn clean [{:keys [base-dir] :as build-result}]
   (when (and base-dir

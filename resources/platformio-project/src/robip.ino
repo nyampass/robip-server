@@ -12,3 +12,15 @@ RobipMotion robip_getCurrentMotion() {
 
   return motion;
 }
+
+size_t robip_serialWrite(int n) {
+  return Serial.print(n);
+}
+
+size_t robip_serialWrite(double n) {
+  return Serial.print(n, 4);
+}
+
+size_t robip_serialWrite(char *s) {
+  return Serial.print(s);
+}

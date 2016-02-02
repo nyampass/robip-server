@@ -3,7 +3,9 @@
             [pandect.algo.sha1 :as sha1]))
 
 (defn fetch-latest [db id]
-  (get @(:db db) id))
+  (let [res (get @(:db db) id)]
+    (swap! (:db db) update-in [id :downloads] (fnil inc 0))
+    res))
 
 (defn update-file [db id new-file]
   (prn db id new-file)

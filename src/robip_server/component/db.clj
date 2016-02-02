@@ -2,6 +2,8 @@
   (:require [com.stuartsierra.component :as comp]
             [pandect.algo.sha1 :as sha1]))
 
+(defn fetch-latest [db id]
+  (get @(:db db) id))
 
 (defn update-file [db id new-file]
   (prn db id new-file)

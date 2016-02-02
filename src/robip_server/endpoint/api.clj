@@ -23,10 +23,16 @@
         (error "build failed" :out out :err err :exit exit)))
     (error "invalid request")))
 
+(defn latest [{{:keys [id]} :params} db]
+  (if-let [{:keys [build]} (db/fetch-latest db id)]
+    (ok :build build)
+    (error "invalid id")))
 
 (defn api-endpoint [{db :db}]
   (-> (routes
        (context "/api" []
                 (POST "/:id/build" req
                       (build req db))
+                (GET "/:id/latest" req
+                     (latest req db))))
       (wrap-restful-format :formats [:json-kw])))

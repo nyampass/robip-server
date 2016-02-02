@@ -8,12 +8,10 @@
     res))
 
 (defn update-file [db id new-file]
-  (prn db id new-file)
   (let [build (get-in db [id :build])]
     (update db id assoc :file new-file :build (inc (or build 0)))))
 
 (defn save-file [db-component id file]
-  (prn db-component id file)
   (swap! (:db db-component) update-file id file))
 
 (defrecord DbComponent [db]

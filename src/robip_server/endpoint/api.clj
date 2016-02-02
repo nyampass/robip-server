@@ -3,7 +3,8 @@
             [ring.util.response :as res]
             [ring.middleware.format :refer [wrap-restful-format]]
             [robip-server.builder :as builder]
-            [robip-server.component.db :as db]))
+            [robip-server.component.db :as db])
+  (:import java.io.File))
 
 (defn response [status opts]
   (res/response (merge {:status status} opts)))
@@ -24,9 +25,9 @@
     (error "invalid request")))
 
 (defn fetch-latest [{{:keys [id since]} :params} db]
-  (if-let [{:keys [build file]} (db/fetch-latest db id)]
+  (if-let [{:keys [build ^File file]} (db/fetch-latest db id)]
     (if (or (not since) (< since build))
-      (res/response file)
+      (res/file-response (.getAbsolutePath file))
       {:status 404 :headers {} :body ""})
     (error "invalid id")))
 

@@ -2,9 +2,9 @@
   (:require [com.stuartsierra.component :as comp]
             [pandect.algo.sha1 :as sha1]))
 
-(defn fetch-latest [db id]
-  (let [res (get @(:db db) id)]
-    (swap! (:db db) update-in [id :downloads] (fnil inc 0))
+(defn fetch-latest [db-component id]
+  (let [res (get @(:db db-component) id)]
+    (swap! (:db db-component) update-in [id :downloads] (fnil inc 0))
     res))
 
 (defn update-file [db id new-file]

@@ -19,8 +19,8 @@
   (if code
     (let [{bin-file :bin-file {:keys [out err exit]} :result} (builder/build code)]
       (if bin-file
-        (do (db/save-file db id bin-file)
-            (ok :out out :err err :exit exit))
+        (let [build (db/save-file db id bin-file)]
+          (ok :build build :out out :err err :exit exit))
         (error "build failed" :out out :err err :exit exit)))
     (error "invalid request")))
 

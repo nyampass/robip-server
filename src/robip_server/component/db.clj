@@ -12,7 +12,9 @@
     (update db id assoc :file new-file :build (inc (or build 0)))))
 
 (defn save-file [db-component id file]
-  (swap! (:db db-component) update-file id file))
+  (let [db (update-file @(:db db-component) id file)]
+    (reset! (:db db-component) db)
+    (get-in db [id :build])))
 
 (defrecord DbComponent [db]
   comp/Lifecycle

@@ -23,18 +23,10 @@
         (error "build failed" :out out :err err :exit exit)))
     (error "invalid request")))
 
-(defn fetch-file [{{:keys [hash]} :params} db]
-  (if hash
-    (if-let [file (db/fetch-file db hash)]
-      (res/file-response (.getPath file))
-      (res/not-found "not found"))
-    (res/not-found "not found")))
 
 (defn api-endpoint [{db :db}]
   (-> (routes
        (context "/api" []
                 (POST "/build" req
                       (build req db))
-                (GET "/binary/:hash" req
-                     (fetch-file req db))))
       (wrap-restful-format :formats [:json-kw])))

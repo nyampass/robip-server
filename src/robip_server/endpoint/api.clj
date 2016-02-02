@@ -23,9 +23,11 @@
         (error "build failed" :out out :err err :exit exit)))
     (error "invalid request")))
 
-(defn latest [{{:keys [id]} :params} db]
-  (if-let [{:keys [build]} (db/fetch-latest db id)]
-    (ok :build build)
+(defn fetch-latest [{{:keys [id since]} :params} db]
+  (if-let [{:keys [build file]} (db/fetch-latest db id)]
+    (if (or (not since) (< since build))
+      (res/response file)
+      {:status 404 :headers {} :body ""})
     (error "invalid id")))
 
 (defn api-endpoint [{db :db}]
@@ -34,5 +36,5 @@
                 (POST "/:id/build" req
                       (build req db))
                 (GET "/:id/latest" req
-                     (latest req db))))
+                     (fetch-latest req db))))
       (wrap-restful-format :formats [:json-kw])))

@@ -3,10 +3,14 @@
             [pandect.algo.sha1 :as sha1]))
 
 
-(defn save-file [db file]
-  (let [hash (sha1/sha1 file)]
-    (swap! (:db db) assoc hash file)
-    hash))
+(defn update-file [db id new-file]
+  (prn db id new-file)
+  (let [build (get-in db [id :build])]
+    (update db id assoc :file new-file :build (inc (or build 0)))))
+
+(defn save-file [db-component id file]
+  (prn db-component id file)
+  (swap! (:db db-component) update-file id file))
 
 (defrecord DbComponent [db]
   comp/Lifecycle

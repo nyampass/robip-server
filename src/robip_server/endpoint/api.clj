@@ -14,12 +14,12 @@
 (defn error [msg & {:as opts}]
   (response :error (merge {:message msg} opts)))
 
-(defn build [{{:keys [code]} :params} db]
+(defn build [{{:keys [id code]} :params} db]
   (if code
     (let [{bin-file :bin-file {:keys [out err exit]} :result} (builder/build code)]
       (if bin-file
-        (let [hash (db/save-file db bin-file)]
-          (ok :url (str "/api/binary/" hash) :out out :err err :exit exit))
+        (do (db/save-file db id bin-file)
+            (ok :out out :err err :exit exit))
         (error "build failed" :out out :err err :exit exit)))
     (error "invalid request")))
 
@@ -27,6 +27,6 @@
 (defn api-endpoint [{db :db}]
   (-> (routes
        (context "/api" []
-                (POST "/build" req
+                (POST "/:id/build" req
                       (build req db))
       (wrap-restful-format :formats [:json-kw])))

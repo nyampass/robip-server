@@ -1,5 +1,6 @@
 (ns robip-server.endpoint.api
   (:require [compojure.core :refer [routes context GET POST]]
+            [compojure.route :as route]
             [ring.util.response :as res]
             [ring.middleware.format :refer [wrap-restful-format]]
             [robip-server.builder :as builder]
@@ -37,5 +38,6 @@
                 (POST "/:id/build" req
                       (build req db))
                 (GET "/:id/latest" req
-                     (fetch-latest req db))))
+                     (fetch-latest req db)))
+       (route/resources "/"))
       (wrap-restful-format :formats [:json-kw])))

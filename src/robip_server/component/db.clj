@@ -2,8 +2,11 @@
   (:require [com.stuartsierra.component :as comp]
             [pandect.algo.sha1 :as sha1]))
 
+(defn peek-latest [db-component id]
+  (get @(:db db-component) id))
+
 (defn fetch-latest [db-component id]
-  (let [res (get @(:db db-component) id)]
+  (let [res (peek-latest db-component id)]
     (swap! (:db db-component) update-in [id :downloads] (fnil inc 0))
     res))
 

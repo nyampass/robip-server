@@ -19,13 +19,14 @@
        "#define _SETTINGS_H_\n"
        "\n"
        "#define ROBIP_ID \"%s\"\n"
+       "#define ROBIP_BUILD %d\n"
        "#define ROBIP_WIFI_SSID \"%s\"\n"
        "#define ROBIP_WIFI_PASS \"%s\"\n"
        "\n"
        "#endif\n"))
 
-(defn write-settings [writer {:keys [robip-id ssid pass]}]
-  (.write writer (format settings-template robip-id ssid pass)))
+(defn write-settings [writer {:keys [robip-id build ssid pass]}]
+  (.write writer (format settings-template robip-id build ssid pass)))
 
 (defn build [code settings]
   (let [config (project-config)]

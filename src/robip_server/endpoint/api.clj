@@ -18,7 +18,9 @@
 
 (defn build [{{:keys [id code ssid pass]} :params} db]
   (if code
-    (let [{bin-file :bin-file {:keys [out err exit]} :result} (builder/build code {:robip-id id :ssid ssid :pass pass})]
+    (let [prev-build (or (:build (db/peek-latest db id)) 0)
+          result (builder/build code {:robip-id id :build (inc prev-build) :ssid ssid :pass pass})
+          {bin-file :bin-file {:keys [out err exit]} :result} result]
       (if bin-file
         (let [build (db/save-file db id bin-file)]
           (ok :build build :out out :err err :exit exit))

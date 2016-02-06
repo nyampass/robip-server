@@ -12,7 +12,7 @@
 
 (defn update-file [db id new-file]
   (let [build (get-in db [id :build])]
-    (update db id assoc :file new-file :build (inc (or build 0)))))
+    (update db id assoc :file new-file :build (inc (or build 0)) :downloads 0)))
 
 (defn save-file [db-component id file]
   (let [db (update-file @(:db db-component) id file)]

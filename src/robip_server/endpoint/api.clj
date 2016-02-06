@@ -16,9 +16,9 @@
 (defn error [msg & {:as opts}]
   (response :error (merge {:message msg} opts)))
 
-(defn build [{{:keys [id code]} :params} db]
+(defn build [{{:keys [id code ssid pass]} :params} db]
   (if code
-    (let [{bin-file :bin-file {:keys [out err exit]} :result} (builder/build code)]
+    (let [{bin-file :bin-file {:keys [out err exit]} :result} (builder/build code {:robip-id id :ssid ssid :pass pass})]
       (if bin-file
         (let [build (db/save-file db id bin-file)]
           (ok :build build :out out :err err :exit exit))

@@ -36,6 +36,11 @@
 
 (defn api-endpoint [{db :db}]
   (-> (routes
+       (GET "/" []
+            (-> "index.html"
+                (res/file-response {:root "resources/public"
+                                    :allow-symlinks? true})
+                (res/content-type "text/html")))
        (context "/api" []
                 (POST "/:id/build" req
                       (build req db))

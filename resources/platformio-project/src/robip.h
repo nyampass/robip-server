@@ -7,6 +7,9 @@ typedef struct {
   double roll;
 } RobipMotion;
 
+void robip_setupWifi();
+void robip_update();
+
 void robip_currentMotion(RobipMotion *motion);
 RobipMotion robip_getCurrentMotion();
 size_t robip_serialWrite(int n);

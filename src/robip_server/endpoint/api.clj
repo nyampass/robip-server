@@ -28,9 +28,9 @@
     (error "invalid request")))
 
 (defn fetch-latest [{{:keys [id since]} :params} db]
-  (if-let [{:keys [build ^File file]} (db/fetch-latest db id)]
+  (if-let [{:keys [build path]} (db/fetch-latest db id)]
     (if (or (not since) (< since build))
-      (res/file-response (.getAbsolutePath file))
+      (res/file-response path)
       {:status 404 :headers {} :body ""})
     (error "invalid id")))
 

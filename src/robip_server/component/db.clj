@@ -1,34 +1,42 @@
 (ns robip-server.component.db
   (:require [com.stuartsierra.component :as comp]
-            [pandect.algo.sha1 :as sha1]))
+            [pandect.algo.sha1 :as sha1]
+            [monger.core :as mg]
+            [monger.collection :as mc]
+            [monger.operators :refer :all]
+            [monger.gridfs :refer [store-file make-input-file filename content-type metadata]])
+  (:import [java.io File]))
+
+(def coll "files")
 
 (defn peek-latest [db-component id]
-  (get @(:db db-component) id))
+  (mc/find-one-as-map (:db db-component)
+                      coll
+                      {:_id id}))
 
 (defn fetch-latest [db-component id]
-  (let [res (peek-latest db-component id)]
-    (swap! (:db db-component) update-in [id :downloads] (fnil inc 0))
-    res))
+  (mc/find-and-modify (:db db-component) coll
+                      {:_id id}
+                      {$inc {:downloads 1}}
+                      {:return-new true}))
 
-(defn update-file [db id new-file]
-  (let [build (get-in db [id :build])]
-    (update db id assoc :file new-file :build (inc (or build 0)) :downloads 0)))
+(defn- update-file [db id new-path]
+  (mc/find-and-modify db coll
+                      {:_id id}
+                      {$set {:path new-path, :downloads 0}
+                       $inc {:build 1}}
+                      {:upsert true :return-new true}))
 
-(defn save-file [db-component id file]
-  (let [db (update-file @(:db db-component) id file)]
-    (reset! (:db db-component) db)
-    (get-in db [id :build])))
+(defn save-file [db-component id ^File file]
+  (:build (update-file (:db db-component) id (.getPath file))))
 
-(defrecord DbComponent [db]
+(defrecord DbComponent [uri]
   comp/Lifecycle
   (start [this]
-    (if db
-      this
-      (assoc this :db (atom {}))))
+    (prn :uri uri)
+    (assoc this :db (:db (mg/connect-via-uri uri))))
   (stop [this]
-    (if-not db
-      this
-      (assoc this :db nil))))
+    (dissoc this :db)))
 
 (defn db-component [config]
-  (map->DbComponent {}))
+  (map->DbComponent config))

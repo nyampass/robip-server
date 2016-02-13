@@ -11,25 +11,6 @@
 
 ESP8266WiFiMulti robip_wifi;
 
-void robip_setupWifi() {
-  Serial.begin(115200);
-  Serial.setDebugOutput(true);
-
-  Serial.println();
-  Serial.println();
-  Serial.println();
-
-  for(uint8_t t = 4; t > 0; t--) {
-    Serial.printf("[Robip: Setup] %d...\n", t);
-    Serial.flush();
-    delay(1000);
-  }
-
-  robip_wifi.addAP(ROBIP_WIFI_SSID, ROBIP_WIFI_PASS);
-  robip_wifi.addAP("robip", ROBIP_ID);
-}
-
-
 void robip_update() {
   String urlStr = "http://robip.halake.com/api/";
   urlStr.concat(ROBIP_ID);
@@ -62,6 +43,27 @@ void robip_update() {
 	return;
   }
 }
+
+void robip_setupWifi() {
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+
+  Serial.println();
+  Serial.println();
+  Serial.println();
+
+  for(uint8_t t = 4; t > 0; t--) {
+    Serial.printf("[Robip: Setup] %d...\n", t);
+    Serial.flush();
+    delay(1000);
+  }
+
+  robip_wifi.addAP(ROBIP_WIFI_SSID, ROBIP_WIFI_PASS);
+  robip_wifi.addAP("robip", ROBIP_ID);
+
+  robip_update();
+}
+
 
 void robip_currentMotion(RobipMotion *motion) {
   motion->yaw = 0;

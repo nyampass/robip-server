@@ -10,44 +10,47 @@
 #include <ESP8266httpUpdate.h>
 
 ESP8266WiFiMulti robip_wifi;
+int robip_updateStatus = 0;
 
 void robip_update() {
+  if (robip_updateStatus >= 1) {
+	return;
+  }
+  if (robip_wifi.run() != WL_CONNECTED) {
+	return;
+  }
+  robip_updateStatus = 1;
+
   String urlStr = "http://robip.halake.com/api/";
   urlStr.concat(ROBIP_ID);
   urlStr.concat("/latest?since=");
   urlStr.concat(ROBIP_BUILD);
 
-  char url[50];
-  urlStr.toCharArray(url, 50);
+  char url[128];
+  urlStr.toCharArray(url, 128);
 
   Serial.printf("[Robip: Update] %s\n", url);
   
-  for (uint8_t t = 4; t > 0; t--) {
-	Serial.printf("[Robip: Update: %d] %d...\n", t);
-	if (robip_wifi.run() != WL_CONNECTED) {
-	  delay(500);
-	}
-	t_httpUpdate_return ret = ESPhttpUpdate.update(url);
-	switch(ret) {
-	case HTTP_UPDATE_FAILED:
-	  Serial.println("`HTTP_UPDATE_FAILD");
-	  break;
-	  
-	case HTTP_UPDATE_NO_UPDATES:
-	  Serial.println("HTTP_UPDATE_NO_UPDATES");
-	  break;
-	  
-	case HTTP_UPDATE_OK:
-	  Serial.println("HTTP_UPDATE_OK");
-	  break;
-	}
-	return;
+  Serial.printf("[Robip: Update: %d] ...\n", robip_updateStatus);
+
+  t_httpUpdate_return ret = ESPhttpUpdate.update(url);
+  switch(ret) {
+  case HTTP_UPDATE_FAILED:
+	Serial.printf("[Robip: Update: %d] update failed\n", robip_updateStatus);
+	break;
+	
+  case HTTP_UPDATE_NO_UPDATES:
+	Serial.printf("[Robip: Update: %d] no updates\n", robip_updateStatus);
+	break;
+	
+  case HTTP_UPDATE_OK:
+	Serial.printf("[Robip: Update: %d] update ok\n", robip_updateStatus);
+	break;
   }
 }
 
 void robip_setupWifi() {
   Serial.begin(115200);
-  Serial.setDebugOutput(true);
 
   Serial.println();
   Serial.println();
@@ -60,11 +63,8 @@ void robip_setupWifi() {
   }
 
   robip_wifi.addAP(ROBIP_WIFI_SSID, ROBIP_WIFI_PASS);
-  robip_wifi.addAP("robip", ROBIP_ID);
-
-  robip_update();
+  // robip_wifi.addAP("robip", ROBIP_ID);
 }
-
 
 void robip_currentMotion(RobipMotion *motion) {
   motion->yaw = 0;

@@ -10,3 +10,4 @@ pom.xml.asc
 /profiles.clj
 dev/local.clj
 *~
+/.idea

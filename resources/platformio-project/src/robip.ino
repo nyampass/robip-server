@@ -14,7 +14,8 @@ ESP8266WiFiMulti robip_wifi;
 void robip_update() {
   String urlStr = "http://robip.halake.com/api/";
   urlStr.concat(ROBIP_ID);
-  urlStr.concat("/latest");
+  urlStr.concat("/latest?since=");
+  urlStr.concat(ROBIP_BUILD);
 
   char url[50];
   urlStr.toCharArray(url, 50);

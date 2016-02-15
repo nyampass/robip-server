@@ -29,7 +29,7 @@
 
 (defn fetch-latest [{{:keys [id since]} :params} db]
   (if-let [{:keys [build path]} (db/fetch-latest db id)]
-    (if (or (not since) (< since build))
+    (if (or (not since) (< (Integer. since) build))
       (res/file-response path)
       {:status 404 :headers {} :body ""})
     (error "invalid id")))

@@ -69,7 +69,7 @@ void robip_setupWifi() {
     delay(1000);
   }
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < ROBIP_WIFI_COUNT; i++) {
     robip_wifi.addAP(ROBIP_WIFI_SSID[i], ROBIP_WIFI_PASS[i]);
   }
 

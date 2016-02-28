@@ -22,6 +22,7 @@
        "\n"
        "#define ROBIP_ID \"%s\"\n"
        "#define ROBIP_BUILD %d\n"
+       "#define ROBIP_WIFI_COUNT %d\n"
        "#define ROBIP_WIFI_SSID (const char*[%d]) {%s}\n"
        "#define ROBIP_WIFI_PASS (const char*[%d]) {%s}\n"
        "\n"
@@ -38,6 +39,7 @@
 (defn write-settings [writer {:keys [robip-id build wifi]}]
   (.write writer (format settings-template
                          robip-id build
+                         (count wifi)
                          (count wifi) (wifi-ssids wifi)
                          (count wifi) (wifi-passwords wifi))))
 

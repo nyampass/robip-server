@@ -16,10 +16,10 @@
 (defn error [msg & {:as opts}]
   (response :error (merge {:message msg} opts)))
 
-(defn build [{{:keys [id code ssid pass]} :params} db]
+(defn build [{{:keys [id code wifi]} :params} db]
   (if code
     (let [prev-build (or (:build (db/peek-latest db id)) 0)
-          result (builder/build code {:robip-id id :build (inc prev-build) :ssid ssid :pass pass})
+          result (builder/build code {:robip-id id :build (inc prev-build) :wifi wifi})
           {bin-file :bin-file {:keys [out err exit]} :result} result]
       (if bin-file
         (let [build (db/save-file db id bin-file)]

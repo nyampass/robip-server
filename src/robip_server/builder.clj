@@ -1,7 +1,9 @@
 (ns robip-server.builder
   (:require [clojure.java.io :as io]
             [clojure.java.shell :refer [sh]]
-            [me.raynes.fs :as fs]))
+            [clojure.string :refer [join]]
+            [me.raynes.fs :as fs])
+  (:import [java.net URLEncoder]))
 
 (def command-run-platformio "/usr/local/bin/platformio run")
 (def base-project "./resources/platformio-project")
@@ -20,13 +22,24 @@
        "\n"
        "#define ROBIP_ID \"%s\"\n"
        "#define ROBIP_BUILD %d\n"
-       "#define ROBIP_WIFI_SSID \"%s\"\n"
-       "#define ROBIP_WIFI_PASS \"%s\"\n"
+       "#define ROBIP_WIFI_SSID (const char*[%d]) {%s}\n"
+       "#define ROBIP_WIFI_PASS (const char*[%d]) {%s}\n"
        "\n"
        "#endif\n"))
 
-(defn write-settings [writer {:keys [robip-id build ssid pass]}]
-  (.write writer (format settings-template robip-id build ssid pass)))
+(defn wifi-ssids [wifi]
+  (join ", " (for [{ssid :ssid} wifi]
+               (str "\"" (URLEncoder/encode ssid) "\""))))
+
+(defn wifi-passwords [wifi]
+  (join ", " (for [{password :password} wifi]
+               (str "\"" password "\""))))
+
+(defn write-settings [writer {:keys [robip-id build wifi]}]
+  (.write writer (format settings-template
+                         robip-id build
+                         (count wifi) (wifi-ssids wifi)
+                         (count wifi) (wifi-passwords wifi))))
 
 (defn build [code settings]
   (let [config (project-config)]

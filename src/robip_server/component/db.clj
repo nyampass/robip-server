@@ -8,6 +8,18 @@
   (:import [java.io File]))
 
 (def coll "files")
+(def wifi-setting-coll "wifi-settings")
+
+(defn update-wifi-settings [db id wifi-settings]
+  (mc/update db wifi-setting-coll
+             {:_id id}
+             {:wifi wifi-settings}
+             {:upsert true}))
+
+(defn fetch-wifi-settings [db id]
+  (-> (mc/find-one-as-map db wifi-setting-coll
+                          {:_id id})
+      :wifi))
 
 (defn peek-latest [db-component id]
   (mc/find-one-as-map (:db db-component)

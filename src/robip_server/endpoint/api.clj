@@ -21,11 +21,16 @@
     (let [prev-build (or (:build (db/peek-latest db id)) 0)
           result (builder/build code {:robip-id id :build (inc prev-build) :wifi wifi})
           {bin-file :bin-file {:keys [out err exit]} :result} result]
+      (db/update-wifi-settings (:db db) id wifi)
       (if bin-file
         (let [build (db/save-file db id bin-file)]
           (ok :build build :out out :err err :exit exit))
         (error "build failed" :out out :err err :exit exit)))
     (error "invalid request")))
+
+(defn fetch-wifi [req db]
+  (ok :wifi (or (db/fetch-wifi-settings (:db db) (-> req :params :id))
+                [])))
 
 (defn fetch-latest [{{:keys [id since]} :params} db]
   (if-let [{:keys [build path]} (db/fetch-latest db id)]
@@ -42,6 +47,8 @@
                                     :allow-symlinks? true})
                 (res/content-type "text/html")))
        (context "/api" []
+                (GET "/:id/wifi" req
+                     (fetch-wifi req db))
                 (POST "/:id/build" req
                       (build req db))
                 (GET "/:id/latest" req

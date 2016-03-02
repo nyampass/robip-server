@@ -32,12 +32,30 @@
   (ok :wifi (or (db/fetch-wifi-settings (:db db) (-> req :params :id))
                 [])))
 
-(defn fetch-latest [{{:keys [id since]} :params} db]
+(defn- user-agent [{headers :headers :as params}]
+  (get headers "user-agent"))
+
+(defn- robip-boad-request? [params]
+  (= (user-agent params)
+     "ESP8266-http-Update"))
+
+(defn fetch-latest [{{:keys [id since]} :params :as params} db]
   (if-let [{:keys [build path]} (db/fetch-latest db id)]
-    (if (or (not since) (< (Integer. since) build))
-      (res/file-response path)
-      {:status 404 :headers {} :body ""})
+    (let [with-append-log
+          (fn [log-action fn]
+            (let [ret (fn)]
+              (if (robip-boad-request? params)
+                (db/append-log (:db db) id log-action))
+              ret))]
+      (if (or (not since) (< (Integer. since) build))
+        (with-append-log :update
+          #(res/file-response path))
+        (with-append-log :online
+          (constantly {:status 404 :headers {} :body ""}))))
     (error "invalid id")))
+
+(defn logs [{{:keys [id]} :params} db]
+  (ok :logs (db/formatted-logs (:db db) id 10)))
 
 (defn api-endpoint [{db :db}]
   (-> (routes
@@ -52,6 +70,8 @@
                 (POST "/:id/build" req
                       (build req db))
                 (GET "/:id/latest" req
-                     (fetch-latest req db)))
+                     (fetch-latest req db))
+                (GET "/:id/logs" req
+                     (logs req db)))
        (route/resources "/"))
       (wrap-restful-format :formats [:json-kw])))

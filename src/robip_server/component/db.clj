@@ -36,16 +36,17 @@
                           (cf/formatter "yyyy/MM/dd HH:mm:ss")
                           (t/default-time-zone)))
 
-(defn formatted-logs [db id count]
-  (clojure.string/join
-   "\n"
-   (map (fn [{:keys [action at] :as log}]
-          (str (cf/unparse datetime-formatter(from-date at)) ": "
-               (condp = (keyword action)
-                 :update "プログラミングを更新しました"
-                 :online "オンラインを検知しました"
-                 "-")))
-        (logs db id count))))
+(defn formatted-logs [db id limit]
+  (let [logs (map (fn [{:keys [action at] :as log}]
+                    (str (cf/unparse datetime-formatter(from-date at)) ": "
+                         (condp = (keyword action)
+                           :update "プログラミングを更新しました"
+                           :online "オンラインを検知しました"
+                           "-")))
+                  (logs db id limit))]
+    (if (> (count logs) 0)
+      (clojure.string/join "\n" logs)
+      "HaLakeボードからのアクセスログが表示されます")))
 
 (defn update-wifi-settings [db id wifi-settings]
   (mc/update db wifi-setting-coll

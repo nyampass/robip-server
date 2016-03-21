@@ -1,7 +1,6 @@
 (ns robip-server.component.db
   (:refer-clojure :exclude [select find sort])
   (:require [com.stuartsierra.component :as comp]
-            [pandect.algo.sha1 :as sha1]
             [monger.core :as mg]
             [monger.collection :as mc]
             [monger.query :refer :all]
@@ -14,6 +13,8 @@
   (:import [java.io File]))
 
 (def file-coll :files)
+
+(def user-coll :users)
 
 (def wifi-setting-coll :wifi-settings)
 
@@ -40,8 +41,8 @@
   (let [logs (map (fn [{:keys [action at] :as log}]
                     (str (cf/unparse datetime-formatter(from-date at)) ": "
                          (condp = (keyword action)
-                           :update "プログラミングを更新しました"
-                           :online "オンラインを検知しました"
+                           :update "HaLakeボードのプログラミングを更新しました!"
+                           :online "HaLakeボードがインターネットに接続しました!"
                            "-")))
                   (logs db id limit))]
     (if (> (count logs) 0)
@@ -79,6 +80,20 @@
 
 (defn save-file [db-component id ^File file]
   (:build (update-file (:db db-component) id (.getPath file))))
+
+(defn login [db email password]
+  (mc/find-one-as-map db
+                      user-coll
+                      {:_id email}))
+
+(defn signup [db email username password]
+  (if (and (seq email)
+           (seq username)
+           (seq password))
+    (mc/insert db log-coll
+               {:_id email
+                :username username
+                :at (to-date (t/now))})))
 
 (defrecord DbComponent [uri]
   comp/Lifecycle

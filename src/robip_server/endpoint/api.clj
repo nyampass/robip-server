@@ -57,6 +57,13 @@
 (defn logs [{{:keys [id]} :params} db]
   (ok :logs (db/formatted-logs (:db db) id 10)))
 
+(defn add-user [{{:keys [email password]} :params} db]
+
+  (ok :message "登録しました！メールを送信しましたので、メールをご確認し、ログインを行ってください"))
+
+(defn login [{{:keys [email password]} :params} db]
+  (ok :id "hoge" :name "Taro"))
+
 (defn api-endpoint [{db :db}]
   (-> (routes
        (GET "/" []
@@ -72,6 +79,10 @@
                 (GET "/:id/latest" req
                      (fetch-latest req db))
                 (GET "/:id/logs" req
-                     (logs req db)))
+                     (logs req db))
+                (POST "/users" req
+                      (add-user req db))
+                (POST "/login" req
+                      (login req db)))
        (route/resources "/"))
       (wrap-restful-format :formats [:json-kw])))

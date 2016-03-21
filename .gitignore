@@ -11,3 +11,7 @@ pom.xml.asc
 dev/local.clj
 *~
 /.idea
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

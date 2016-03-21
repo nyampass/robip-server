@@ -32,13 +32,12 @@ void robip_update() {
 
      return;
   }
+
   if (robip_wifi.run() != WL_CONNECTED) {
 	return;
   }
+
   robip_updateStatus = 1;
-
-
-  return;
 
   String urlStr = "http://robip.halake.com/api/";
   urlStr.concat(ROBIP_ID);
@@ -95,9 +94,10 @@ void robip_setupWifi() {
 
   robip_accesspoint_mode = (apModeGPINOnCount >= 3);
 
+  char ssid[20];
+  (String("robip-") + String(ROBIP_ID).substring(0, 5)).toCharArray(ssid, 20);
+
   if (robip_accesspoint_mode) {
-	char ssid[20];
-	(String("robip-") + String(ROBIP_ID).substring(0, 5)).toCharArray(ssid, 20);
 	WiFi.softAP(ssid, ROBIP_ID);
 	
   } else {
@@ -105,6 +105,8 @@ void robip_setupWifi() {
 	  robip_wifi.addAP(ROBIP_WIFI_SSID[i], ROBIP_WIFI_PASS[i]);
 	}
   }
+
+  ArduinoOTA.setHostname(ssid);
 
   ArduinoOTA.onStart([]() {
     Serial.println("Start");

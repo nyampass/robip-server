@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+#define DEBUG_ESP_WIFI
+#define DEBUG_ESP_PORT
+
 #include <ESP8266WiFiMulti.h>
 
 #include <ESP8266HTTPClient.h>
@@ -12,21 +15,30 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
-#define DEBUG_ESP_WIFI
-#define DEBUG_ESP_PORT
+#define ROBIP_WIFI_AP_MODE_GPIN 0
 
 ESP8266WiFiMulti robip_wifi;
 int robip_updateStatus = 0;
+boolean robip_accesspoint_mode = false;
 
 void robip_update() {
-  if (robip_updateStatus >= 1) {
+  if (robip_accesspoint_mode || robip_updateStatus >= 1) {
      ArduinoOTA.handle();
+
+	 if (robip_accesspoint_mode) {
+	   Serial.println("ap mode.\n");
+	   Serial.flush();
+	 }
+
      return;
   }
   if (robip_wifi.run() != WL_CONNECTED) {
 	return;
   }
   robip_updateStatus = 1;
+
+
+  return;
 
   String urlStr = "http://robip.halake.com/api/";
   urlStr.concat(ROBIP_ID);
@@ -63,14 +75,35 @@ void robip_setupWifi() {
   Serial.println();
   Serial.println();
 
+  pinMode(ROBIP_WIFI_AP_MODE_GPIN, INPUT); // check wifi access point mode button
+  int apModeGPINOnCount = 0, prevGPINStatus = 1;
+
   for(int t = 3; t > 0; t--) {
     Serial.printf("[Robip: Booting] %d...\n", t);
     Serial.flush();
-    delay(1000);
+
+    for (int in_t = 0; in_t < 500; in_t++) {
+	  int status = digitalRead(ROBIP_WIFI_AP_MODE_GPIN);
+	  if (status != prevGPINStatus) {
+		if (status == 0)
+		  apModeGPINOnCount++;
+		prevGPINStatus = status;
+	  }
+	  delay(2);
+    }
   }
 
-  for (int i = 0; i < ROBIP_WIFI_COUNT; i++) {
-    robip_wifi.addAP(ROBIP_WIFI_SSID[i], ROBIP_WIFI_PASS[i]);
+  robip_accesspoint_mode = (apModeGPINOnCount >= 3);
+
+  if (robip_accesspoint_mode) {
+	char ssid[20];
+	(String("robip-") + String(ROBIP_ID).substring(0, 5)).toCharArray(ssid, 20);
+	WiFi.softAP(ssid, ROBIP_ID);
+	
+  } else {
+	for (int i = 0; i < ROBIP_WIFI_COUNT; i++) {
+	  robip_wifi.addAP(ROBIP_WIFI_SSID[i], ROBIP_WIFI_PASS[i]);
+	}
   }
 
   ArduinoOTA.onStart([]() {

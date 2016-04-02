@@ -57,12 +57,15 @@
 (defn logs [{{:keys [id]} :params} db]
   (ok :logs (db/formatted-logs (:db db) id 10)))
 
-(defn add-user [{{:keys [email password]} :params} db]
-
-  (ok :message "登録しました！メールを送信しましたので、メールをご確認し、ログインを行ってください"))
+(defn signup [{{:keys [email username password]} :params} db]
+  (if-let [user (db/signup (:db db) email username password)]
+    (ok :message "登録しました！")
+    (error "登録情報を確認してください.すでに同一のメールアドレスが登録されている可能性があります")))
 
 (defn login [{{:keys [email password]} :params} db]
-  (ok :id "hoge" :name "Taro"))
+  (or (if-let [user (db/login (:db db) email password)]
+        (ok :id (:id user) :name (:username user)))
+      (error "ログインに失敗しました")))
 
 (defn api-endpoint [{db :db}]
   (-> (routes
@@ -81,7 +84,7 @@
                 (GET "/:id/logs" req
                      (logs req db))
                 (POST "/users" req
-                      (add-user req db))
+                      (signup req db))
                 (POST "/login" req
                       (login req db)))
        (route/resources "/"))

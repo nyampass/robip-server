@@ -1,5 +1,5 @@
 (ns robip-server.component.db
-  (:refer-clojure :exclude [select find sort])
+  (:refer-clojure :exclude [select find sort hash])
   (:require [com.stuartsierra.component :as comp]
             [monger.core :as mg]
             [monger.collection :as mc]
@@ -9,8 +9,11 @@
             [clj-time.core :as t]
             [clj-time.coerce :refer [to-date from-date]]
             [clj-time.local :refer [to-local-date-time]]
-            [clj-time.format :as cf])
-  (:import [java.io File]))
+            [clj-time.format :as cf]
+            [buddy.core.hash :as hash]
+            [buddy.core.codecs :refer :all])
+  (:import [java.io File]
+           [com.mongodb DuplicateKeyException]))
 
 (def file-coll :files)
 
@@ -81,19 +84,30 @@
 (defn save-file [db-component id ^File file]
   (:build (update-file (:db db-component) id (.getPath file))))
 
+(defn encrypted-password [password]
+  (-> (hash/sha256 password) bytes->hex))
+
 (defn login [db email password]
-  (mc/find-one-as-map db
-                      user-coll
-                      {:_id email}))
+  (if-let [{:keys [_id] :as user} (mc/find-one-as-map db
+                                    user-coll
+                                    {:_id email})]
+    (if (= (encrypted-password password) (:password user))
+      (-> user
+          (dissoc :password :_id)
+          (assoc :id _id)))))
 
 (defn signup [db email username password]
   (if (and (seq email)
            (seq username)
            (seq password))
-    (mc/insert db log-coll
-               {:_id email
-                :username username
-                :at (to-date (t/now))})))
+    (try
+      (mc/insert db user-coll
+                 {:_id email
+                  :username username
+                  :password (encrypted-password password)
+                  :at (to-date (t/now))})
+      (catch DuplicateKeyException e))))
+
 
 (defrecord DbComponent [uri]
   comp/Lifecycle

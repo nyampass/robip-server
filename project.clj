@@ -13,7 +13,7 @@
                  [ring-middleware-format "0.7.0"]
                  [ring-jetty-component "0.3.0"]
                  [me.raynes/fs "1.4.6"]
-                 [buddy/buddy-sign "0.9.0"]
+                 [buddy/buddy-core "0.11.0"]
                  [com.novemberain/monger "3.0.2"]]
   :plugins [[lein-environ "1.0.1"]
             [lein-gen "0.2.2"]]

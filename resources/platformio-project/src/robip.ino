@@ -17,6 +17,8 @@
 
 #define ROBIP_WIFI_AP_MODE_GPIN 0
 
+#define ROBIP_IR_GPOUT 5
+
 ESP8266WiFiMulti robip_wifi;
 int robip_updateStatus = 0;
 boolean robip_accesspoint_mode = false;
@@ -151,4 +153,22 @@ size_t robip_serialWrite(double n) {
 
 size_t robip_serialWrite(char *s) {
   return Serial.print(s);
+}
+
+void robip_sendIR(unsigned int data[]) {
+  pinMode(ROBIP_IR_GPOUT, OUTPUT);
+
+  int size = sizeof(data) / sizeof(data[0]);
+  for (int i = 0; i < size; i++) {
+    unsigned long len = data[i] * 10;
+    unsigned long us = micros();
+
+    do {
+      digitalWrite(ROBIP_IR_GPOUT, 1 - (i & 1));
+      delayMicroseconds(8);
+
+      digitalWrite(ROBIP_IR_GPOUT, 0);
+      delayMicroseconds(7);
+    } while (long(us + len - micros()) > 0);
+  }
 }

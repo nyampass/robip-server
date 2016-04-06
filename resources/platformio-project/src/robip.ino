@@ -17,7 +17,7 @@
 
 #define ROBIP_WIFI_AP_MODE_GPIN 0
 
-#define ROBIP_IR_GPOUT 5
+#define ROBIP_IR_GPOUT 16
 
 ESP8266WiFiMulti robip_wifi;
 int robip_updateStatus = 0;

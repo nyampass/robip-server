@@ -155,12 +155,11 @@ size_t robip_serialWrite(char *s) {
   return Serial.print(s);
 }
 
-void robip_sendIR(unsigned int data[]) {
+void robip_sendIR(unsigned int irData[], int length) {
   pinMode(ROBIP_IR_GPOUT, OUTPUT);
 
-  int size = sizeof(data) / sizeof(data[0]);
-  for (int i = 0; i < size; i++) {
-    unsigned long len = data[i] * 10;
+  for (int i = 0; i < length; i++) {
+    unsigned long len = irData[i] * 10;
     unsigned long us = micros();
 
     do {

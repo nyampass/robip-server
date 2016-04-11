@@ -25,6 +25,7 @@ ESP8266WiFiMulti robip_wifi;
 boolean robip_accesspoint_mode = false;
 
 void robip_update() {
+  delay(1);
 }
 
 void robip_setupWifi() {

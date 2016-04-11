@@ -19,54 +19,12 @@
 
 #define ROBIP_IR_GPOUT 16
 
+#define ROBIP_MAX_CONNECT_WAIT_COUNT 3000
+
 ESP8266WiFiMulti robip_wifi;
-int robip_updateStatus = 0;
 boolean robip_accesspoint_mode = false;
 
 void robip_update() {
-  if (robip_accesspoint_mode || robip_updateStatus >= 1) {
-     ArduinoOTA.handle();
-
-	 if (robip_accesspoint_mode) {
-	   Serial.println("ap mode.\n");
-	   Serial.flush();
-	 }
-
-     return;
-  }
-
-  if (robip_wifi.run() != WL_CONNECTED) {
-	return;
-  }
-
-  robip_updateStatus = 1;
-
-  String urlStr = "http://robip.halake.com/api/";
-  urlStr.concat(ROBIP_ID);
-  urlStr.concat("/latest?since=");
-  urlStr.concat(ROBIP_BUILD);
-
-  char url[128];
-  urlStr.toCharArray(url, 128);
-
-  Serial.printf("[Robip: Update] %s\n", url);
-  
-  Serial.printf("[Robip: Update: %d] ...\n", robip_updateStatus);
-
-  t_httpUpdate_return ret = ESPhttpUpdate.update(url);
-  switch(ret) {
-  case HTTP_UPDATE_FAILED:
-	Serial.printf("[Robip: Update: %d] update failed\n", robip_updateStatus);
-	break;
-	
-  case HTTP_UPDATE_NO_UPDATES:
-	Serial.printf("[Robip: Update: %d] no updates\n", robip_updateStatus);
-	break;
-	
-  case HTTP_UPDATE_OK:
-	Serial.printf("[Robip: Update: %d] update ok\n", robip_updateStatus);
-	break;
-  }
 }
 
 void robip_setupWifi() {
@@ -128,6 +86,56 @@ void robip_setupWifi() {
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
   ArduinoOTA.begin();
+
+  if (robip_accesspoint_mode) {
+    while (1) {
+      ArduinoOTA.handle();
+
+      if (robip_accesspoint_mode) {
+        Serial.println("ap mode.\n");
+        Serial.flush();
+      }
+    }
+  }
+
+  boolean timeout = true;
+  for (int i = 0; i < ROBIP_MAX_CONNECT_WAIT_COUNT; i++) {
+    if (robip_wifi.run() == WL_CONNECTED) {
+      timeout = false;
+      break;
+    }
+    delay(1);
+  }
+  if (timeout) {
+    Serial.println("connecting time out");
+    Serial.flush();
+    return;
+  }
+
+  String urlStr = "http://robip.halake.com/api/";
+  urlStr.concat(ROBIP_ID);
+  urlStr.concat("/latest?since=");
+  urlStr.concat(ROBIP_BUILD);
+
+  char url[128];
+  urlStr.toCharArray(url, 128);
+
+  Serial.printf("[Robip: Update] %s\n", url);
+
+  t_httpUpdate_return ret = ESPhttpUpdate.update(url);
+  switch(ret) {
+  case HTTP_UPDATE_FAILED:
+	Serial.printf("[Robip: Update] update failed\n");
+	break;
+	
+  case HTTP_UPDATE_NO_UPDATES:
+	Serial.printf("[Robip: Update] no updates\n");
+	break;
+	
+  case HTTP_UPDATE_OK:
+	Serial.printf("[Robip: Update] update ok\n");
+	break;
+  }
 }
 
 void robip_currentMotion(RobipMotion *motion) {

@@ -19,8 +19,6 @@
 
 (def user-coll :users)
 
-(def wifi-setting-coll :wifi-settings)
-
 (def log-coll :logs)
 
 (defn append-log [db id action]
@@ -52,16 +50,25 @@
       (clojure.string/join "\n" logs)
       "HaLakeボードからのアクセスログが表示されます")))
 
-(defn update-wifi-settings [db id wifi-settings]
-  (mc/update db wifi-setting-coll
-             {:_id id}
-             {:wifi wifi-settings}
-             {:upsert true}))
+(defn update-user-info [db email attr-key attr-value]
+  (mc/update db user-coll
+             {:_id email}
+             {:$set {attr-key attr-value}}))
 
-(defn fetch-wifi-settings [db id]
-  (-> (mc/find-one-as-map db wifi-setting-coll
-                          {:_id id})
+(defn fetch-wifi-settings [db email]
+  (-> (mc/find-one-as-map db user-coll
+                          {:_id email})
       :wifi))
+
+(defn update-robip-id [db email robip-id]
+  (mc/update db user-coll
+             {:_id email}
+             {:robip-id robip-id}))
+
+(defn fetch-robip-id [db email]
+  (-> (mc/find-one-as-map db user-coll
+                          {:_id email})
+      :robip-id))
 
 (defn peek-latest [db-component id]
   (mc/find-one-as-map (:db db-component)
@@ -87,35 +94,54 @@
 (defn encrypted-password [password]
   (-> (hash/sha256 password) bytes->hex))
 
-(defn login [db email password]
-  (if-let [{:keys [_id] :as user} (mc/find-one-as-map db
-                                    user-coll
-                                    {:_id email})]
-    (if (= (encrypted-password password) (:password user))
-      (-> user
-          (dissoc :password :_id)
-          (assoc :id _id)))))
+(defn fix-user [{:keys [_id] :as user}]
+   (-> user
+       (dissoc :password :_id)
+       (assoc :id _id)))
 
-(defn signup [db email username password]
+(defn find-user-by-email [db email]
+ (some-> (mc/find-one-as-map
+          db user-coll {:_id email})
+         fix-user))
+
+(defn login [db email password]
+  (if-let [user
+           (mc/find-one-as-map
+            db user-coll {:_id email})]
+    (if (= (encrypted-password password) (:password user))
+      (fix-user user))))
+
+(defn signup [db email name password]
   (if (and (seq email)
-           (seq username)
+           (seq name)
            (seq password))
     (try
       (mc/insert db user-coll
                  {:_id email
-                  :username username
+                  :name name
                   :password (encrypted-password password)
                   :at (to-date (t/now))})
       (catch DuplicateKeyException e))))
 
+(defn social-signup [db media email name id-in-media]
+  (if-let [user (signup db email name
+                        (apply str (take 10 (repeatedly #(-> (range (int \a) (inc (int \z))) rand-nth char)))))]
+    (mc/update db user-coll
+               {:_id email}
+               {:$set {:media media
+                       :id-in-media id-in-media}})))
 
 (defrecord DbComponent [uri]
   comp/Lifecycle
   (start [this]
-    (prn :uri uri)
     (assoc this :db (:db (mg/connect-via-uri uri))))
   (stop [this]
     (dissoc this :db)))
 
 (defn db-component [config]
   (map->DbComponent config))
+
+
+
+
+

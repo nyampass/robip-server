@@ -1,10 +1,12 @@
 (ns robip-server.endpoint.api
-  (:require [compojure.core :refer [routes context GET POST]]
+  (:require [compojure.core :refer [routes context GET POST PUT]]
             [compojure.route :as route]
             [ring.util.response :as res]
             [ring.middleware.format :refer [wrap-restful-format]]
             [robip-server.builder :as builder]
-            [robip-server.component.db :as db])
+            [robip-server.component.db :as db]
+            [robip-server.config :as config]
+            [robip-server.sign :as sign])
   (:import java.io.File))
 
 (defn response [status opts]
@@ -16,21 +18,34 @@
 (defn error [msg & {:as opts}]
   (response :error (merge {:message msg} opts)))
 
-(defn build [{{:keys [id code wifi]} :params} db]
-  (if code
-    (let [prev-build (or (:build (db/peek-latest db id)) 0)
-          result (builder/build code {:robip-id id :build (inc prev-build) :wifi wifi})
-          {bin-file :bin-file {:keys [out err exit]} :result} result]
-      (db/update-wifi-settings (:db db) id wifi)
-      (if bin-file
-        (let [build (db/save-file db id bin-file)]
-          (ok :build build :out out :err err :exit exit))
-        (error "build failed" :out out :err err :exit exit)))
-    (error "invalid request")))
+(defn session-user-id-by-req [req]
+  (-> req :session :id))
 
-(defn fetch-wifi [req db]
-  (ok :wifi (or (db/fetch-wifi-settings (:db db) (-> req :params :id))
-                [])))
+(defn session-user-by-req [req db]
+  (if-let [id (session-user-id-by-req req)]
+    (db/find-user-by-email db id)))
+
+(defn build [{{:keys [id code wifi]} :params :as req} db]
+  (if-let [user (session-user-id-by-req req (:db db))]
+    (if (and code
+             (:robip-id user))
+      (let [id (:robip-id user)
+            prev-build (or (:build (db/peek-latest db id)) 0)
+            result (builder/build code {:robip-id id :build (inc prev-build) :wifi wifi})
+            {bin-file :bin-file {:keys [out err exit]} :result} result]
+        (if-let [user-id (-> req :session :id)]
+          (db/update-user-info (:db db) (:id user) :wifi wifi))
+        (if bin-file
+          (let [build (db/save-file db id bin-file)]
+            (ok :build build :out out :err err :exit exit))
+          (error "build failed" :out out :err err :exit exit)))
+      (error "invalid code or robip-id"))
+    (error "not login")))
+
+(defn fetch-user-info [req db]
+  (if-let [id (-> req :session :id)]
+    (ok :user (db/find-user-by-email (:db db) id))
+    (error "not login")))
 
 (defn- user-agent [{headers :headers :as params}]
   (get headers "user-agent"))
@@ -57,35 +72,78 @@
 (defn logs [{{:keys [id]} :params} db]
   (ok :logs (db/formatted-logs (:db db) id 10)))
 
-(defn signup [{{:keys [email username password]} :params} db]
-  (if-let [user (db/signup (:db db) email username password)]
-    (ok :message "登録しました！")
+(defn signup [{{:keys [email name password]} :params} db]
+  (if-let [user (db/signup (:db db) email name password)]
+    (-> (ok :message "登録しました！")
+        (assoc :session {:id email}))
     (error "登録情報を確認してください.すでに同一のメールアドレスが登録されている可能性があります")))
 
 (defn login [{{:keys [email password]} :params} db]
   (or (if-let [user (db/login (:db db) email password)]
-        (ok :id (:id user) :name (:username user)))
+        (-> (ok :id (:id user) :name (:username user))
+            (assoc :session {:id email})))
       (error "ログインに失敗しました")))
 
-(defn api-endpoint [{db :db}]
+(defn logout [req]
+  (-> (ok)
+      (assoc :session nil)))
+
+(defn update-user-info [{params :params :as req} key db]
+  (do
+    (db/update-user-info (:db db) (session-user-id-by-req req)
+                       key (key params))
+    (ok)))
+
+(defn update-file [{{:keys [index name xml]} :params :as req} db]
+  (db/update-user-info (:db db) (session-user-id-by-req req)
+                       (keyword (str "files." index))
+                       {:name name, :xml xml})
+  (ok))
+
+(defn facebook-login [{:keys [query-params] :as req} db]
+  (let [redirect-fn #(assoc (res/redirect (if (= (:type query-params) "app")
+                                            "/app.html"
+                                            "/editor.html"))
+                            :session {:id (:id %)})]
+    (if-let [{:keys [id name email]} (sign/facebook-user-info (config/facebook-config
+                                                               (-> req :params :type)) query-params)]
+      (if-let [user (db/social-signup (:db db) :facebook email name id)]
+        (redirect-fn user)
+        (if-let [user (db/find-user-by-email (:db db) email)]
+          (redirect-fn user))))))
+
+(defn api-endpoint [{db :db http :http :as config}]
   (-> (routes
        (GET "/" []
             (-> "index.html"
                 (res/file-response {:root "resources/public"
                                     :allow-symlinks? true})
                 (res/content-type "text/html")))
+       (GET "/login/facebook/:type" req
+            (res/redirect (sign/auth-reqeuest-uri
+                           (config/facebook-config (-> req :params :type)))))
+       (GET "/login/facebook-auth/:type" req
+            (facebook-login req db))
        (context "/api" []
-                (GET "/:id/wifi" req
-                     (fetch-wifi req db))
-                (POST "/:id/build" req
-                      (build req db))
-                (GET "/:id/latest" req
+                (GET "/latest" req ;; for halake board
                      (fetch-latest req db))
-                (GET "/:id/logs" req
+                (POST "/board/build" req
+                      (build req db))
+                (GET "/board/logs" req
                      (logs req db))
                 (POST "/users" req
                       (signup req db))
+                (GET "/users/me" req
+                     (fetch-user-info req db))
+                (POST "/users/me/wifi" req
+                     (update-user-info req :wifi db))
+                (POST "/users/me/robip-id" req
+                     (update-user-info req :robip-id db))
+                (PUT "/users/me/files/:index" req
+                     (update-file req db))
                 (POST "/login" req
-                      (login req db)))
+                      (login req db))
+                (GET "/logout" req
+                      (logout req)))
        (route/resources "/"))
       (wrap-restful-format :formats [:json-kw])))

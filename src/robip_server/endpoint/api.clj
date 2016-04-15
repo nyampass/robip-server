@@ -25,7 +25,7 @@
   (if-let [id (session-user-id-by-req req)]
     (db/find-user-by-email db id)))
 
-(defn build [{{:keys [id code wifi]} :params :as req} db]
+(defn build [{{:keys [code wifi]} :params :as req} db]
   (if-let [user (session-user-id-by-req req (:db db))]
     (if (and code
              (:robip-id user))

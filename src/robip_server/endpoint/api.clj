@@ -26,15 +26,13 @@
     (db/find-user-by-email db id)))
 
 (defn build [{{:keys [code wifi]} :params :as req} db]
-  (if-let [user (session-user-id-by-req req (:db db))]
+  (if-let [user (session-user-by-req req (:db db))]
     (if (and code
              (:robip-id user))
       (let [id (:robip-id user)
             prev-build (or (:build (db/peek-latest db id)) 0)
             result (builder/build code {:robip-id id :build (inc prev-build) :wifi wifi})
             {bin-file :bin-file {:keys [out err exit]} :result} result]
-        (if-let [user-id (-> req :session :id)]
-          (db/update-user-info (:db db) (:id user) :wifi wifi))
         (if bin-file
           (let [build (db/save-file db id bin-file)]
             (ok :build build :out out :err err :exit exit))

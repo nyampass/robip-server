@@ -123,7 +123,7 @@
        (GET "/login/facebook-auth/:type" req
             (facebook-login req db))
        (context "/api" []
-                (GET "/latest" req ;; for halake board
+                (GET "/:id/latest" req ;; for halake board
                      (fetch-latest req db))
                 (POST "/board/build" req
                       (build req db))

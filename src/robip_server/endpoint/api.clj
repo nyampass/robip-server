@@ -67,8 +67,10 @@
           (constantly {:status 404 :headers {} :body ""}))))
     (error "invalid id")))
 
-(defn logs [{{:keys [id]} :params} db]
-  (ok :logs (db/formatted-logs (:db db) id 10)))
+(defn logs [req db]
+  (if-let [user (session-user-by-req req (:db db))]
+    (ok :user (str user) :logs (db/formatted-logs (:db db) (:robip-id user) 10))
+    (error "Robip IDをセットしてください")))
 
 (defn signup [{{:keys [email name password]} :params} db]
   (if-let [user (db/signup (:db db) email name password)]

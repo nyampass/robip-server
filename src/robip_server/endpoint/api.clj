@@ -80,7 +80,7 @@
 
 (defn login [{{:keys [email password]} :params} db]
   (or (if-let [user (db/login (:db db) email password)]
-        (-> (ok :id (:id user) :name (:name user))
+        (-> (ok :id (:id user) :name (:name user) :user user)
             (assoc :session {:id email})))
       (error "ログインに失敗しました")))
 

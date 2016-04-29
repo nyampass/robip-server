@@ -94,10 +94,15 @@
                        key (key params))
     (ok)))
 
-(defn update-file [{{:keys [index name xml]} :params :as req} db]
+(defn update-file [{{:keys [index name xml code]} :params :as req} db]
   (db/update-user-info (:db db) (session-user-id-by-req req)
                        (keyword (str "files." index))
-                       {:name name, :xml xml})
+                       {:name name, :xml xml, :code code})
+  (ok))
+
+(defn update-all-files [{{:keys [files]} :params :as req} db]
+  (db/update-user-info (:db db) (session-user-id-by-req req)
+                       :files files)
   (ok))
 
 (defn facebook-login [{:keys [query-params] :as req} db]
@@ -139,6 +144,8 @@
                      (update-user-info req :wifi db))
                 (POST "/users/me/robip-id" req
                      (update-user-info req :robip-id db))
+                (PUT "/users/me/files" req
+                     (update-all-files req db))
                 (PUT "/users/me/files/:index" req
                      (update-file req db))
                 (POST "/login" req

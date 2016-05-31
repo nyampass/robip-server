@@ -1,8 +1,16 @@
 #include <ESP8266HTTPClient.h>
 
-void robip_http_access(char* url) {
+String robip_http_access(char* url) {
+  String response = "";
+
   HTTPClient http;
   http.begin(url);
-  http.GET();
+
+  if(http.GET() == 200) {
+	response = http.getString();
+  }
+
   http.end();
+
+  return response;
 }

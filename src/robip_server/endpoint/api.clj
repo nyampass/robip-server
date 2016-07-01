@@ -124,6 +124,10 @@
                 (res/file-response {:root "resources/public"
                                     :allow-symlinks? true})
                 (res/content-type "text/html")))
+       (GET "/robip-tool.exe" []
+            (res/redirect "https://github.com/nyampass/robip-tool-go/releases"))
+       (GET "/robip-tool.jar" []
+            (res/redirect "https://github.com/nyampass/robip-tool-go/releases"))
        (GET "/login/facebook/:type" req
             (res/redirect (sign/auth-reqeuest-uri
                            (config/facebook-config (-> req :params :type)))))
